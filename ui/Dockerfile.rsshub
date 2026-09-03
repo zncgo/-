@@ -1,0 +1,3 @@
+FROM diygod/rsshub
+
+COPY rsshub-cookie-bootstrap.mjs /cookie-bootstrap.mjs

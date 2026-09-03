@@ -1,0 +1,2 @@
+"""RSSHub NetVerify authorization gateway."""
+

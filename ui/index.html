@@ -1,0 +1,1170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <title>主页发布时间核对台</title>
+    <script>
+        (() => {
+            const key = 'rsshub-console-theme';
+            const saved = localStorage.getItem(key);
+            const theme = saved === 'dark' || saved === 'light'
+                ? saved
+                : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.dataset.theme = theme;
+        })();
+    </script>
+    <style>
+        :root {
+            --ink: #172019;
+            --muted: #687069;
+            --line: #dfe5df;
+            --paper: #f7f8f4;
+            --panel: #ffffff;
+            --brand: #e85d2a;
+            --brand-dark: #b93c12;
+            --green: #177245;
+            --green-soft: #e6f4ec;
+            --amber: #a15c00;
+            --amber-soft: #fff3d6;
+            --red: #b22c25;
+            --red-soft: #fce9e7;
+            --shadow: 0 18px 60px rgba(35, 48, 38, .09);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 8% 0%, rgba(232, 93, 42, .11), transparent 32rem),
+                linear-gradient(180deg, #fbfbf8 0%, var(--paper) 100%);
+            font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+        }
+        button, textarea, select, input { font: inherit; }
+        button { cursor: pointer; }
+        .shell { width: min(1440px, calc(100% - 36px)); margin: 0 auto; padding: 34px 0 56px; }
+        .app-layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 22px; align-items: start; }
+        .sidebar { position: sticky; top: 20px; display: grid; gap: 7px; padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.78); box-shadow: 0 10px 30px rgba(35,48,38,.05); }
+        .nav-link { display: flex; align-items: center; min-height: 42px; padding: 0 12px; border-radius: 10px; color: var(--muted); font-size: 13px; font-weight: 750; text-decoration: none; }
+        .nav-link:hover, .nav-link:focus-visible { color: var(--ink); background: #f4f6f2; outline: none; }
+        .nav-link[aria-current="page"] { color: #fff; background: var(--brand); box-shadow: 0 6px 16px rgba(232,93,42,.22); }
+        .console-page[hidden] { display: none; }
+        .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 24px; }
+        .eyebrow { margin: 0 0 8px; color: var(--brand); font-size: 12px; font-weight: 800; letter-spacing: .18em; }
+        h1 { margin: 0; font-size: clamp(30px, 4vw, 52px); line-height: 1.05; letter-spacing: -.045em; }
+        .subtitle { max-width: 720px; margin: 13px 0 0; color: var(--muted); font-size: 15px; line-height: 1.75; }
+        .status-pill { flex: none; display: flex; align-items: center; gap: 9px; margin-top: 5px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.72); font-size: 13px; }
+        .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #9aa19b; box-shadow: 0 0 0 4px rgba(154,161,155,.12); }
+        .status-pill.online .status-dot { background: #25a55f; box-shadow: 0 0 0 4px rgba(37,165,95,.13); }
+        .workspace { display: grid; grid-template-columns: minmax(360px, .85fr) minmax(520px, 1.35fr); gap: 20px; align-items: start; }
+        .card { border: 1px solid rgba(211,218,211,.9); border-radius: 22px; background: rgba(255,255,255,.92); box-shadow: var(--shadow); overflow: hidden; }
+        .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 19px 22px; border-bottom: 1px solid var(--line); }
+        .card-title { margin: 0; font-size: 17px; }
+        .step { color: var(--brand); font-size: 12px; font-weight: 800; letter-spacing: .12em; }
+        .input-body { padding: 20px 22px 22px; }
+        label { display: block; margin-bottom: 9px; font-size: 13px; font-weight: 700; }
+        textarea {
+            width: 100%; min-height: 330px; resize: vertical; padding: 15px 16px; border: 1px solid #cfd7cf; border-radius: 14px;
+            outline: none; background: #fcfcfa; color: var(--ink); line-height: 1.65; transition: .18s border, .18s box-shadow;
+        }
+        textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(232,93,42,.1); }
+        .hint { margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+        .controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 17px; }
+        .btn { min-height: 42px; padding: 0 17px; border: 1px solid transparent; border-radius: 12px; font-weight: 750; transition: transform .15s, background .15s, border .15s; }
+        .btn:hover { transform: translateY(-1px); }
+        .btn.primary { color: #fff; background: var(--brand); box-shadow: 0 8px 20px rgba(232,93,42,.22); }
+        .btn.primary:hover { background: var(--brand-dark); }
+        .btn.secondary { color: var(--ink); border-color: var(--line); background: #fff; }
+        .btn.danger { color: var(--red); border-color: #edcfcb; background: #fff; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+        .small-control { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+        select { height: 38px; padding: 0 28px 0 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+        .checkbox { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+        .checkbox input { accent-color: var(--brand); }
+        .results-card { min-height: 586px; }
+        .result-actions { display: flex; gap: 8px; }
+        .mini-btn { padding: 8px 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 9px; background: #fff; font-size: 12px; }
+        .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border-bottom: 1px solid var(--line); }
+        .metric { padding: 15px 17px; background: #fbfcfa; }
+        .metric strong { display: block; font-size: 22px; line-height: 1; }
+        .metric span { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; }
+        .progress-track { height: 4px; background: #edf0ed; }
+        .progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--brand), #f3a13f); transition: width .25s ease; }
+        .table-wrap { max-height: 465px; overflow: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { position: sticky; top: 0; z-index: 1; padding: 11px 12px; color: var(--muted); background: #f7f8f5; text-align: left; font-weight: 750; border-bottom: 1px solid var(--line); }
+        td { padding: 13px 12px; vertical-align: top; border-bottom: 1px solid #edf0ed; }
+        tr:hover td { background: #fcfcf9; }
+        .row-index { width: 42px; color: #929992; }
+        .platform { display: inline-flex; padding: 4px 8px; border-radius: 999px; background: #eff2ef; white-space: nowrap; font-weight: 750; }
+        .link-cell { max-width: 260px; word-break: break-all; color: #4d554f; }
+        .time { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 800; }
+        .work-title { display: block; max-width: 260px; margin-top: 5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .state { display: inline-flex; padding: 4px 8px; border-radius: 999px; white-space: nowrap; font-weight: 750; }
+        .state.waiting, .state.running { color: var(--amber); background: var(--amber-soft); }
+        .state.success { color: var(--green); background: var(--green-soft); }
+        .state.error, .state.no_date { color: var(--red); background: var(--red-soft); }
+        .state.no_target { color: var(--muted); background: var(--surface-muted); }
+        .error-text { max-width: 220px; margin-top: 6px; color: var(--red); line-height: 1.45; }
+        .empty { display: grid; place-items: center; min-height: 365px; padding: 40px; color: var(--muted); text-align: center; }
+        .empty-mark { width: 68px; height: 68px; display: grid; place-items: center; margin: 0 auto 15px; border-radius: 22px; color: var(--brand); background: #fff0ea; font-size: 25px; font-weight: 900; }
+        .output-card { margin-top: 20px; }
+        .output-body { padding: 18px 22px 22px; }
+        #outputText { min-height: 145px; font-family: Consolas, monospace; font-size: 12px; }
+        .cookie-card { margin-top: 20px; }
+        .excel-card { margin-top: 20px; }
+        .excel-grid { display: grid; grid-template-columns: minmax(300px, .72fr) minmax(620px, 1.5fr); }
+        .excel-import { padding: 20px 22px 22px; border-right: 1px solid var(--line); }
+        .excel-preview { min-width: 0; padding: 20px 22px 22px; }
+        .excel-dropzone { display: grid; place-items: center; min-height: 190px; padding: 24px; border: 2px dashed #cbd4cb; border-radius: 16px; background: #fbfcfa; text-align: center; outline: none; transition: border .18s, background .18s, box-shadow .18s; }
+        .excel-dropzone:hover, .excel-dropzone:focus, .excel-dropzone.dragover { border-color: var(--brand); background: #fff8f4; box-shadow: 0 0 0 4px rgba(232,93,42,.08); }
+        .excel-dropzone strong { display: block; margin-bottom: 6px; font-size: 16px; }
+        .excel-dropzone span { color: var(--muted); font-size: 12px; line-height: 1.6; }
+        .excel-dropzone input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        .excel-file-meta { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--muted); font-size: 12px; line-height: 1.6; word-break: break-all; }
+        .excel-file-meta strong { display: block; color: var(--ink); font-size: 13px; }
+        .mode-group { display: grid; gap: 8px; margin-top: 16px; }
+        .mode-option { display: flex; align-items: flex-start; gap: 9px; margin: 0; padding: 11px 12px; border: 1px solid var(--line); border-radius: 11px; background: #fff; font-weight: 500; }
+        .mode-option input { margin-top: 3px; accent-color: var(--brand); }
+        .mode-option strong { display: block; font-size: 12px; }
+        .mode-option span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+        .excel-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+        .excel-stat { padding: 12px 13px; border: 1px solid var(--line); border-radius: 12px; background: #fbfcfa; }
+        .excel-stat strong { display: block; font-size: 19px; }
+        .excel-stat span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+        .excel-table-wrap { max-height: 410px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+        .excel-table-wrap select { width: 100%; min-width: 190px; }
+        .excel-sheet-name { min-width: 150px; font-weight: 750; }
+        .excel-cell-note { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+        .excel-progress { margin-top: 14px; }
+        .excel-progress-copy { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; color: var(--muted); font-size: 11px; }
+        .excel-message { min-height: 20px; margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+        .excel-message.error { color: var(--red); }
+        .excel-message.success { color: var(--green); }
+        .state.stopped { color: var(--muted); background: #eff2ef; }
+        .cookie-grid { display: grid; grid-template-columns: minmax(300px, .82fr) minmax(520px, 1.38fr); gap: 0; }
+        .cookie-import { padding: 20px 22px 22px; border-right: 1px solid var(--line); }
+        .cookie-status { min-width: 0; padding: 20px 22px 22px; }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .field { min-width: 0; }
+        .field input[type="text"], .field input[type="file"] { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+        .cookie-text { min-height: 145px; font-family: Consolas, monospace; font-size: 12px; }
+        .cookie-message { min-height: 20px; margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+        .cookie-message.error { color: var(--red); }
+        .cookie-message.success { color: var(--green); }
+        .capacity-box { display: flex; justify-content: space-between; gap: 14px; align-items: center; padding: 13px 15px; border: 1px solid var(--line); border-radius: 13px; background: #fbfcfa; }
+        .capacity-box strong { font-size: 16px; }
+        .capacity-note { color: var(--muted); font-size: 12px; text-align: right; }
+        .cookie-list-title { margin: 18px 0 8px; font-size: 13px; }
+        .cookie-table-wrap { max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+        .cookie-table-wrap th { top: 0; }
+        .cookie-meta { color: var(--muted); line-height: 1.55; }
+        .cookie-action { padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font-size: 11px; }
+        .cookie-action.delete { color: var(--red); border-color: #edcfcb; }
+        .cookie-empty { padding: 20px; color: var(--muted); text-align: center; font-size: 12px; }
+        .cookie-storage-note { margin: 0 0 14px; padding: 11px 13px; border: 1px solid #d6e7dc; border-radius: 12px; color: #286343; background: #f0f8f2; font-size: 12px; line-height: 1.55; }
+        .concurrency-panel { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; margin: 14px 0; padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: #fbfcfa; }
+        .concurrency-panel label { margin: 0; }
+        .concurrency-panel .hint { margin: 5px 0 0; }
+        dialog.confirm-dialog { width: min(420px, calc(100% - 32px)); padding: 0; border: 1px solid var(--line); border-radius: 18px; color: var(--ink); box-shadow: var(--shadow); }
+        dialog.confirm-dialog::backdrop { background: rgba(18,29,20,.35); }
+        .dialog-body { padding: 22px; }
+        .dialog-body h2 { margin: 0; font-size: 18px; }
+        .dialog-body p { color: var(--muted); font-size: 13px; line-height: 1.65; }
+        .dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }
+        .status-pending { color: var(--amber); }
+        .status-healthy { color: var(--green); }
+        .status-invalid, .status-disabled { color: var(--red); }
+        .status-cooling { color: var(--amber); }
+        .footer-note { margin: 14px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+        .auth-gate { width: min(460px, calc(100% - 36px)); margin: 12vh auto 0; padding: 28px; border: 1px solid rgba(211,218,211,.9); border-radius: 22px; background: rgba(255,255,255,.94); box-shadow: var(--shadow); }
+        .auth-gate h1 { font-size: 30px; }
+        .auth-gate p { color: var(--muted); line-height: 1.6; }
+        .auth-gate form { display: grid; gap: 11px; margin-top: 20px; }
+        .auth-gate input { width: 100%; min-height: 42px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+        .auth-gate input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px rgba(232,93,42,.1); }
+        .auth-gate .notice { min-height: 25px; margin: 14px 0 0; color: var(--muted); font-size: 13px; }
+        .auth-gate .notice.error { color: var(--red); }
+        .auth-gate .notice.success { color: var(--green); }
+        .auth-gate .hidden { display: none; }
+        .session-banner { display: none; margin: 0 0 18px; padding: 12px 15px; border: 1px solid #efd7a2; border-radius: 12px; color: var(--amber); background: var(--amber-soft); font-size: 13px; line-height: 1.55; }
+        a { color: var(--brand-dark); }
+        @media (max-width: 980px) {
+            .app-layout { grid-template-columns: 1fr; gap: 16px; }
+            .sidebar { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 7px; }
+            .nav-link { justify-content: center; padding: 0 8px; text-align: center; }
+            .workspace { grid-template-columns: 1fr; }
+            .cookie-grid { grid-template-columns: 1fr; }
+            .excel-grid { grid-template-columns: 1fr; }
+            .cookie-import { border-right: 0; border-bottom: 1px solid var(--line); }
+            .excel-import { border-right: 0; border-bottom: 1px solid var(--line); }
+            .topbar { flex-direction: column; }
+            .status-pill { margin-top: 0; }
+        }
+        @media (max-width: 640px) {
+            .shell { width: min(100% - 20px, 1440px); padding-top: 22px; }
+            .summary { grid-template-columns: repeat(2, 1fr); }
+            .excel-summary { grid-template-columns: repeat(2, 1fr); }
+            .results-card { min-height: 520px; }
+            .card-head { padding: 17px; }
+            .input-body, .output-body { padding: 17px; }
+            .result-actions { display: none; }
+            .sidebar { grid-template-columns: 1fr; }
+            .concurrency-panel { grid-template-columns: 1fr; }
+        }
+        /* Desktop application shell and complete light/dark token contract. */
+        :root {
+            --app-bg: #f5f4f0;
+            --surface: #ffffff;
+            --surface-muted: #faf9f6;
+            --surface-raised: #ffffff;
+            --border: #dedbd5;
+            --border-strong: #c9c4bc;
+            --text: #1d2522;
+            --text-muted: #69716d;
+            --brand: #e85d2a;
+            --brand-dark: #b84318;
+            --brand-soft: #fff0e9;
+            --success: #1d784a;
+            --success-soft: #e8f5ed;
+            --warning: #9b6204;
+            --warning-soft: #fff4d9;
+            --danger: #b22c25;
+            --danger-soft: #fce9e7;
+            --focus-ring: rgba(232, 93, 42, .34);
+            --shadow: 0 5px 16px rgba(34, 30, 24, .06);
+            --ink: var(--text);
+            --muted: var(--text-muted);
+            --line: var(--border);
+            --paper: var(--app-bg);
+            --panel: var(--surface);
+            --green: var(--success);
+            --green-soft: var(--success-soft);
+            --amber: var(--warning);
+            --amber-soft: var(--warning-soft);
+            --red: var(--danger);
+            --red-soft: var(--danger-soft);
+            --sidebar-width: 216px;
+        }
+        :root[data-theme="dark"] {
+            --app-bg: #161815;
+            --surface: #20231f;
+            --surface-muted: #191c18;
+            --surface-raised: #272b26;
+            --border: #3a4039;
+            --border-strong: #50584f;
+            --text: #edf1ea;
+            --text-muted: #aeb7ae;
+            --brand: #f07943;
+            --brand-dark: #ff9c6d;
+            --brand-soft: #49271d;
+            --success: #60c68b;
+            --success-soft: #173b29;
+            --warning: #f0bd58;
+            --warning-soft: #453513;
+            --danger: #ff8d85;
+            --danger-soft: #4c2425;
+            --focus-ring: rgba(240, 121, 67, .46);
+            --shadow: 0 5px 18px rgba(0, 0, 0, .24);
+        }
+        html, body { width: 100%; min-width: 1280px; height: 100%; overflow: hidden; background: var(--app-bg); }
+        body { min-height: 100dvh; color: var(--text); background: var(--app-bg); }
+        button, input, textarea, select { color: var(--text); }
+        button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [role="button"]:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+        .shell { width: 100%; height: 100dvh; margin: 0; padding: 0; display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); grid-template-rows: 64px minmax(0, 1fr); background: var(--app-bg); transition: grid-template-columns .18s ease; }
+        .app-layout { display: contents; }
+        .sidebar { grid-column: 1; grid-row: 1 / 3; position: static; display: flex; flex-direction: column; gap: 4px; padding: 12px 10px; border: 0; border-right: 1px solid var(--border); border-radius: 0; background: var(--surface-muted); box-shadow: none; overflow: hidden; }
+        .sidebar-brand { display: flex; align-items: center; gap: 10px; min-height: 40px; margin: 0 4px 18px; color: var(--text); font-size: 14px; font-weight: 800; white-space: nowrap; }
+        .brand-logo, .nav-icon, .utility-icon { flex: none; width: 20px; height: 20px; color: var(--brand); }
+        .nav-link { gap: 11px; min-height: 44px; padding: 0 11px; border-radius: 10px; color: var(--text-muted); font-size: 13px; font-weight: 750; white-space: nowrap; }
+        .nav-link:hover { color: var(--text); background: var(--surface); }
+        .nav-link:focus-visible { color: var(--text); background: var(--surface); }
+        .nav-link[aria-current="page"] { color: #fff; background: var(--brand); box-shadow: none; }
+        .nav-link[aria-current="page"] .nav-icon { color: currentColor; }
+        .sidebar-footer { display: grid; gap: 4px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
+        .sidebar-utility { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 40px; padding: 0 11px; border: 0; border-radius: 9px; color: var(--text-muted); background: transparent; font-size: 12px; font-weight: 700; text-align: left; white-space: nowrap; }
+        .sidebar-utility:hover { color: var(--text); background: var(--surface); }
+        :root[data-sidebar="collapsed"] { --sidebar-width: 72px; }
+        :root[data-sidebar="collapsed"] .sidebar-brand, :root[data-sidebar="collapsed"] .nav-link, :root[data-sidebar="collapsed"] .sidebar-utility { justify-content: center; }
+        :root[data-sidebar="collapsed"] .brand-label, :root[data-sidebar="collapsed"] .nav-label, :root[data-sidebar="collapsed"] .utility-label { display: none; }
+        .topbar { grid-column: 2; grid-row: 1; align-items: center; min-height: 64px; margin: 0; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+        .topbar h1 { font-size: 18px; line-height: 1.2; letter-spacing: -.02em; }
+        .topbar .subtitle { display: none; }
+        .eyebrow { margin: 0 0 4px; font-size: 10px; letter-spacing: .14em; }
+        .status-pill { margin: 0; padding: 7px 10px; border-radius: 9px; background: var(--surface-muted); color: var(--text-muted); font-size: 12px; }
+        .app-main { grid-column: 2; grid-row: 2; min-width: 0; overflow: auto; padding: 20px 24px 28px; scrollbar-gutter: stable; }
+        .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 0 0 14px; }
+        .page-heading h2 { margin: 0; font-size: 21px; letter-spacing: -.025em; }
+        .page-heading p { margin: 5px 0 0; color: var(--text-muted); font-size: 12px; }
+        .workspace { gap: 14px; }
+        .card { border-color: var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
+        .card-head { padding: 14px 16px; background: var(--surface-raised); }
+        .card-title { font-size: 15px; }
+        .input-body, .output-body, .excel-import, .excel-preview, .cookie-import, .cookie-status { padding: 16px; }
+        textarea, .field input[type="text"], .field input[type="file"], .auth-gate input, select, .btn.secondary, .btn.danger, .mini-btn, .cookie-action { border-color: var(--border-strong); background: var(--surface); color: var(--text); }
+        textarea { min-height: 270px; border-radius: 10px; background: var(--surface-muted); }
+        textarea:focus, .auth-gate input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--focus-ring); }
+        .btn { min-height: 38px; border-radius: 9px; transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease; }
+        .btn.primary { box-shadow: none; }
+        .btn.danger { color: var(--danger); background: var(--surface); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
+        .mini-btn { border-radius: 8px; }
+        .summary, .metric { background: var(--surface-muted); }
+        .progress-track { background: var(--border); }
+        .progress-bar { background: var(--brand); transition-duration: .18s; }
+        th { background: var(--surface-muted); color: var(--text-muted); }
+        td { border-color: var(--border); }
+        tr:hover td { background: var(--surface-muted); }
+        .platform, .state.stopped { background: var(--surface-muted); color: var(--text-muted); }
+        .excel-dropzone, .excel-file-meta, .mode-option, .excel-stat, .capacity-box, .concurrency-panel { border-color: var(--border); background: var(--surface-muted); }
+        .excel-dropzone { border-radius: 12px; }
+        .excel-table-wrap, .cookie-table-wrap { border-color: var(--border); border-radius: 10px; }
+        .cookie-storage-note { border-color: color-mix(in srgb, var(--success) 35%, var(--border)); color: var(--success); background: var(--success-soft); }
+        dialog.confirm-dialog { border-color: var(--border); border-radius: 12px; color: var(--text); background: var(--surface); }
+        .session-banner { position: fixed; z-index: 10; top: 76px; left: calc(var(--sidebar-width) + 16px); right: 16px; margin: 0; border-color: color-mix(in srgb, var(--warning) 40%, var(--border)); }
+        .auth-gate { width: min(440px, calc(100% - 36px)); margin: 0; position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%); padding: 28px; border-color: var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+        .auth-gate::before { content: ""; display: block; width: 34px; height: 34px; margin-bottom: 18px; border-radius: 10px; background: var(--brand); }
+        .auth-gate h1 { font-size: 26px; }
+        a { color: var(--brand-dark); }
+        :root[data-theme="dark"] a { color: var(--brand-dark); }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+    </style>
+</head>
+<body>
+    <section id="authGate" class="auth-gate" aria-live="polite">
+        <p class="eyebrow">RSSHUB · AUTHORIZED CONSOLE</p>
+        <h1>登录后继续</h1>
+        <p id="authIntro">正在恢复授权会话，请稍候；不会因为刷新或服务重启要求重复输入密码。</p>
+        <form id="loginForm">
+            <label for="authUsername">账号</label>
+            <input id="authUsername" name="username" autocomplete="username" required maxlength="50">
+            <label for="authPassword">密码</label>
+            <input id="authPassword" name="password" type="password" autocomplete="current-password" required>
+            <button class="btn primary" type="submit">登录</button>
+        </form>
+        <form id="activateForm" class="hidden">
+            <label for="authCode">卡密</label>
+            <input id="authCode" name="code" autocomplete="off" required maxlength="128">
+            <button class="btn primary" type="submit">激活并进入</button>
+        </form>
+        <p id="authNotice" class="notice">正在恢复授权…</p>
+    </section>
+    <main class="shell">
+        <div id="sessionBanner" class="session-banner"></div>
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">RSSHUB · DESKTOP CONSOLE</p>
+                <h1 id="pageTitle">主页发布时间核对台</h1>
+                <p class="subtitle">粘贴用户主页，自动识别平台并核对作品发布时间。系统会比较全部有效时间，置顶内容不会被误判成最新作品。</p>
+            </div>
+            <div id="serviceStatus" class="status-pill"><span class="status-dot"></span><span>正在检查 RSSHub</span></div>
+        </header>
+
+        <div class="app-layout">
+            <nav class="sidebar" aria-label="控制台页面">
+                <div class="sidebar-brand" title="主页发布时间核对台"><svg class="brand-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm3 5v8h2V8H7Zm4 3v5h2v-5h-2Zm4-4v9h2V7h-2Z"/></svg><span class="brand-label">核对台</span></div>
+                <a class="nav-link" data-route="links" href="#links" title="链接核对" aria-label="链接核对"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.2 1.2M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.2-1.2"/></svg><span class="nav-label">链接核对</span></a>
+                <a class="nav-link" data-route="excel" href="#excel" title="Excel 批量补齐" aria-label="Excel 批量补齐"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M5 3h11l3 3v15H5zM8 10h8M8 14h8M8 18h5"/></svg><span class="nav-label">Excel 批量补齐</span></a>
+                <a class="nav-link" data-route="cookies" href="#cookies" title="Cookie 管理" aria-label="Cookie 管理"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 3v4m0 10v4M4.2 7l3.4 2m8.8 6 3.4 2M4.2 17l3.4-2m8.8-6 3.4-2M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg><span class="nav-label">Cookie 管理</span></a>
+                <div class="sidebar-footer">
+                    <button id="themeToggle" class="sidebar-utility" type="button" title="切换主题" aria-label="切换到深色主题"><svg class="utility-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg><span id="themeToggleLabel" class="utility-label">深色主题</span></button>
+                    <button id="sidebarToggle" class="sidebar-utility" type="button" title="收起侧栏" aria-label="收起侧栏"><svg class="utility-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M14 6l-6 6 6 6M20 12H9"/></svg><span id="sidebarToggleLabel" class="utility-label">收起侧栏</span></button>
+                </div>
+            </nav>
+            <div class="app-main">
+        <section id="page-links" class="console-page" data-page="links">
+        <div class="page-heading"><div><h2>链接核对</h2><p>输入主页链接，按平台容量持续核对发布时间。</p></div></div>
+        <section class="workspace">
+            <article class="card">
+                <div class="card-head"><h2 class="card-title">输入主页链接</h2><span class="step">STEP 01</span></div>
+                <div class="input-body">
+                    <label for="linkInput">输入个人主页链接（每行一个）</label>
+                    <textarea id="linkInput" spellcheck="false" placeholder="https://v.douyin.com/xxxx/&#10;https://www.douyin.com/user/MS4wLjABAAAA...&#10;https://www.xiaohongshu.com/user/profile/...&#10;https://space.bilibili.com/2267573"></textarea>
+                    <p class="hint">已接入 29 个平台：抖音、小红书、快手、B站、微博、知乎、今日头条、网易新闻、懂车帝、一点资讯、UC大鱼、搜狐新闻、腾讯新闻、凤凰新闻、百度新闻、汽车之家、爱卡汽车、汽车头条、太平洋汽车、网上车市、易车、爱奇艺、优酷/土豆、腾讯视频、美拍、搜狐视频、56视频、秒拍、西瓜视频。每个平台完成首轮后，失败项自动重试一次。</p>
+                    <div class="controls">
+                        <button id="startBtn" class="btn primary">开始核对</button>
+                        <button id="stopBtn" class="btn danger" disabled>停止</button>
+                        <button id="clearBtn" class="btn secondary">清空</button>
+                        <span id="capacityInline" class="small-control">Cookie 容量可在 Cookie 管理页查看和设置</span>
+                        <label class="checkbox"><input id="dedupe" type="checkbox" checked>自动去重</label>
+                    </div>
+                </div>
+            </article>
+
+            <article class="card results-card">
+                <div class="card-head">
+                    <h2 class="card-title">核对结果</h2>
+                    <div class="result-actions"><button id="copyBtn" class="mini-btn">复制文本</button><button id="csvBtn" class="mini-btn">导出 CSV</button></div>
+                </div>
+                <div class="summary">
+                    <div class="metric"><strong id="totalCount">0</strong><span>全部</span></div>
+                    <div class="metric"><strong id="doneCount">0</strong><span>已完成</span></div>
+                    <div class="metric"><strong id="successCount">0</strong><span>取得时间</span></div>
+                    <div class="metric"><strong id="noTargetCount">0</strong><span>无可采集对象</span></div>
+                    <div class="metric"><strong id="errorCount">0</strong><span>采集失败</span></div>
+                </div>
+                <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+                <div id="resultArea" class="empty">
+                    <div><div class="empty-mark">时</div><strong>等待输入主页链接</strong><p>结果会在处理过程中逐条显示。</p></div>
+                </div>
+            </article>
+        </section>
+        </section>
+
+        <section id="page-excel" class="console-page" data-page="excel" hidden>
+        <div class="page-heading"><div><h2>Excel 批量补齐</h2><p>在浏览器本地解析工作簿，并保留可继续处理的部分结果。</p></div></div>
+        <section class="card excel-card" aria-labelledby="excelTitle">
+            <div class="card-head">
+                <div><h2 id="excelTitle" class="card-title">Excel 批量补齐</h2><p class="hint" style="margin-top:4px">工作簿只在当前浏览器内解析和回写，不会上传到服务器；第一轮结束后仅对超时、限流、5xx等临时失败最多自动重试三轮，并在单元格标明失败类别。</p></div>
+                <span class="step">XLSX · LOCAL</span>
+            </div>
+            <div class="excel-grid">
+                <div class="excel-import">
+                    <div id="excelDropzone" class="excel-dropzone" tabindex="0" role="button" aria-label="选择或拖入 Excel 工作簿">
+                        <div><strong>拖入 .xlsx 工作簿</strong><span>或点击选择文件；最大 20 MB<br>不支持 .xls、.xlsm、.csv 和伪装文件</span></div>
+                        <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                    </div>
+                    <div id="excelFileMeta" class="excel-file-meta">尚未选择工作簿</div>
+                    <div class="mode-group" role="radiogroup" aria-label="Excel 运行模式">
+                        <label class="mode-option"><input id="excelModeRefresh" type="radio" name="excelMode" value="refresh" checked><span><strong>全部刷新</strong><span>重新查询所选链接列中的全部支持账号。</span></span></label>
+                        <label class="mode-option"><input id="excelModeContinue" type="radio" name="excelMode" value="continue"><span><strong>继续未完成/错误</strong><span>跳过已有有效时间，仅处理空白和明确错误文本。</span></span></label>
+                    </div>
+                    <div class="controls">
+                        <button id="excelStartBtn" class="btn primary" disabled>开始批量核对</button>
+                        <button id="excelStopBtn" class="btn danger" disabled>停止</button>
+                        <button id="excelDownloadBtn" class="btn secondary" disabled>下载结果</button>
+                        <button id="excelResetBtn" class="btn secondary" disabled>移除文件</button>
+                    </div>
+                    <p id="excelMessage" class="excel-message">选择文件后会自动识别工作表、表头和主页链接列。</p>
+                </div>
+                <div class="excel-preview">
+                    <div id="excelSummary" class="excel-summary">
+                        <div class="excel-stat"><strong>0</strong><span>工作表</span></div>
+                        <div class="excel-stat"><strong>0</strong><span>链接记录</span></div>
+                        <div class="excel-stat"><strong>0</strong><span>去重账号</span></div>
+                        <div class="excel-stat"><strong>0</strong><span>跳过/不支持</span></div>
+                    </div>
+                    <div id="excelPreview" class="excel-table-wrap"><div class="cookie-empty">导入工作簿后在这里选择每张表使用的链接列。</div></div>
+                    <div class="excel-progress">
+                        <div class="excel-progress-copy"><span id="excelProgressText">等待导入</span><span id="excelFidelityText">尚未生成输出</span></div>
+                        <div class="progress-track"><div id="excelProgressBar" class="progress-bar"></div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        </section>
+
+        <section id="page-cookies" class="console-page" data-page="cookies" hidden>
+        <div class="page-heading"><div><h2>Cookie 管理</h2><p>查看每个平台的可用容量与凭据健康状态。</p></div></div>
+        <section class="card cookie-card">
+            <div class="card-head">
+                <h2 class="card-title">Cookie 管理</h2>
+                <div class="result-actions"><button id="refreshCookiesBtn" class="mini-btn">刷新状态</button></div>
+            </div>
+            <div class="cookie-grid">
+                <div class="cookie-import">
+                    <p class="cookie-storage-note">Cookie 已保存在本机用户数据目录；容器重建不会清除。Cookie 等同登录凭据，请勿提交、外发或共享。</p>
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="cookiePlatform">平台</label>
+                            <select id="cookiePlatform">
+                                <option value="douyin">抖音</option>
+                                <option value="xiaohongshu">小红书</option>
+                                <option value="kuaishou">快手</option>
+                                <option value="toutiao">今日头条</option>
+                                <option value="bilibili">B站</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="cookieLabel">标签（可选）</label>
+                            <input id="cookieLabel" type="text" maxlength="80" placeholder="例如：账号A / 电脑2">
+                        </div>
+                    </div>
+                    <label for="cookieText" style="margin-top:14px">粘贴浏览器导出的 Cookie JSON</label>
+                    <textarea id="cookieText" class="cookie-text" spellcheck="false" autocomplete="off" placeholder='[{"domain":".douyin.com","name":"...","value":"..."}]'></textarea>
+                    <div class="field" style="margin-top:12px">
+                        <label for="cookieFile">或者选择本机 JSON 文件（最大 5 MiB）</label>
+                        <input id="cookieFile" type="file" accept="application/json,.json">
+                    </div>
+                    <div class="controls">
+                        <button id="importCookieBtn" class="btn primary">导入 Cookie</button>
+                    </div>
+                    <p id="cookieMessage" class="cookie-message">文件只在浏览器本地读取，服务器不接受文件路径或网络地址；Cookie 内容不会显示在列表中。</p>
+                </div>
+                <div class="cookie-status">
+                    <div class="capacity-box">
+                        <strong id="cookieCapacity">健康0份 × 每份1 = 总容量0</strong>
+                        <span id="cookieSchedulingNote" class="capacity-note">抖音已接入调度</span>
+                    </div>
+                    <div class="concurrency-panel">
+                        <div><label for="cookieConcurrency">当前平台每 Cookie 并发</label><p class="hint">修改后立即保存并影响后续任务。</p></div>
+                        <select id="cookieConcurrency"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+                    </div>
+                    <div class="concurrency-panel">
+                        <div><label for="allCookieConcurrency">全部平台每 Cookie 并发</label><p class="hint">会覆盖全部 29 个平台注册表，包括暂未导入 Cookie 的平台。</p></div>
+                        <div class="controls" style="margin:0"><select id="allCookieConcurrency"><option value="mixed">各平台不同</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select><button id="applyAllConcurrencyBtn" class="btn secondary" type="button">应用到全部平台</button></div>
+                    </div>
+                    <h3 class="cookie-list-title">当前成员</h3>
+                    <div id="cookieMemberList" class="cookie-table-wrap"><div class="cookie-empty">正在读取 Cookie 状态…</div></div>
+                    <h3 class="cookie-list-title">30 天回收区</h3>
+                    <div id="cookieTrashList" class="cookie-table-wrap"><div class="cookie-empty">暂无已删除成员</div></div>
+                </div>
+            </div>
+        </section>
+        </section>
+
+        <section class="card output-card console-page" data-page="links">
+            <div class="card-head"><h2 class="card-title">文本输出</h2><span class="step">STEP 02</span></div>
+            <div class="output-body">
+                <label for="outputText">主页链接　主页作品最新时间（北京时间）　最新作品链接</label>
+                <textarea id="outputText" readonly placeholder="处理完成后可直接复制到 Excel"></textarea>
+                <p class="footer-note">时间统一转换为北京时间。没有发布时间的作品不会参与比较；平台返回顺序不影响最终结果。</p>
+            </div>
+        </section>
+            </div>
+        </div>
+    </main>
+    <dialog id="confirmDialog" class="confirm-dialog" aria-labelledby="confirmDialogTitle">
+        <form method="dialog" class="dialog-body">
+            <h2 id="confirmDialogTitle">请确认</h2>
+            <p id="confirmDialogText"></p>
+            <div class="dialog-actions"><button id="confirmDialogCancel" class="btn secondary" value="cancel" autofocus>取消</button><button id="confirmDialogAccept" class="btn danger" value="confirm">确认</button></div>
+        </form>
+    </dialog>
+
+    <script>
+        const elements = Object.fromEntries(['linkInput','startBtn','stopBtn','clearBtn','capacityInline','dedupe','resultArea','outputText','totalCount','doneCount','successCount','noTargetCount','errorCount','progressBar','copyBtn','csvBtn','serviceStatus','cookiePlatform','cookieLabel','cookieText','cookieFile','importCookieBtn','refreshCookiesBtn','cookieMessage','cookieCapacity','cookieSchedulingNote','cookieMemberList','cookieTrashList','cookieConcurrency','allCookieConcurrency','applyAllConcurrencyBtn','confirmDialog','confirmDialogTitle','confirmDialogText','authGate','authIntro','authNotice','loginForm','activateForm','authUsername','authPassword','authCode','sessionBanner','pageTitle','themeToggle','themeToggleLabel','sidebarToggle','sidebarToggleLabel'].map(id => [id, document.getElementById(id)]));
+        let rows = [];
+        let activeRun = null;
+        let cookieSnapshot = { platforms: [], trash: [] };
+        let authState = 'signedOut';
+        let appUnlocked = false;
+        let authHeartbeatTimer = null;
+        const globalWorkerLimit = 4;
+        const routes = ['links', 'excel', 'cookies'];
+        const routeTitles = { links: '主页发布时间核对台', excel: 'Excel 批量补齐', cookies: 'Cookie 管理' };
+        const themeStorageKey = 'rsshub-console-theme';
+        const sidebarStorageKey = 'rsshub-console-sidebar-collapsed';
+
+        const stateLabels = { waiting: '等待', running: '处理中', success: '成功', no_date: '无时间', no_target: '无可采集对象', error: '失败' };
+        const platformLabels = { douyin: '抖音', xiaohongshu: '小红书', kuaishou: '快手', toutiao: '今日头条', bilibili: 'B站' };
+        const cookieStatusLabels = { pending: '待验证', healthy: '健康', cooling: '冷却', invalid: '失效', disabled: '停用', trashed: '回收区' };
+        const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+
+        function applyRoute() {
+            const requested = window.location.hash.replace(/^#/, '');
+            const route = routes.includes(requested) ? requested : 'links';
+            if (requested !== route) history.replaceState(null, '', `#${route}`);
+            document.querySelectorAll('[data-page]').forEach(page => { page.hidden = page.dataset.page !== route; });
+            document.querySelectorAll('[data-route]').forEach(link => {
+                if (link.dataset.route === route) link.setAttribute('aria-current', 'page');
+                else link.removeAttribute('aria-current');
+            });
+            elements.pageTitle.textContent = routeTitles[route];
+        }
+
+        function applyTheme(theme, persist = false) {
+            const nextTheme = theme === 'dark' ? 'dark' : 'light';
+            document.documentElement.dataset.theme = nextTheme;
+            document.querySelector('meta[name="color-scheme"]').content = nextTheme;
+            const isDark = nextTheme === 'dark';
+            elements.themeToggleLabel.textContent = isDark ? '浅色主题' : '深色主题';
+            elements.themeToggle.setAttribute('aria-label', `切换到${isDark ? '浅色' : '深色'}主题`);
+            elements.themeToggle.title = elements.themeToggle.getAttribute('aria-label');
+            if (persist) localStorage.setItem(themeStorageKey, nextTheme);
+        }
+
+        function applySidebarState(collapsed, persist = false) {
+            document.documentElement.dataset.sidebar = collapsed ? 'collapsed' : 'expanded';
+            elements.sidebarToggleLabel.textContent = collapsed ? '展开侧栏' : '收起侧栏';
+            elements.sidebarToggle.setAttribute('aria-label', collapsed ? '展开侧栏' : '收起侧栏');
+            elements.sidebarToggle.title = collapsed ? '展开侧栏' : '收起侧栏';
+            if (persist) localStorage.setItem(sidebarStorageKey, collapsed ? '1' : '0');
+        }
+
+        function confirmDialog({ title, text, acceptLabel = '确认', danger = false }) {
+            return new Promise(resolve => {
+                elements.confirmDialogTitle.textContent = title;
+                elements.confirmDialogText.textContent = text;
+                const accept = document.getElementById('confirmDialogAccept');
+                accept.textContent = acceptLabel;
+                accept.className = `btn ${danger ? 'danger' : 'primary'}`;
+                const onClose = () => resolve(elements.confirmDialog.returnValue === 'confirm');
+                elements.confirmDialog.addEventListener('close', onClose, { once: true });
+                elements.confirmDialog.showModal();
+                document.getElementById('confirmDialogCancel').focus();
+            });
+        }
+
+        function authMessage(data) {
+            return data.message || ({ signedOut: '请输入账号和密码。', signedInUnlicensed: '账号已登录，请输入卡密激活。', active: '授权有效。', expired: '授权已过期，请重新激活。', deviceLimit: '设备数量已达上限。', upgradeRequired: '当前版本需要升级。', appDisabled: '应用已下线。', networkError: '授权服务器暂时无法连接，正在自动恢复。', forcedOut: '服务器已强制登出，请重新登录。' }[data.state] || '授权状态未知。');
+        }
+
+        function stopAuthHeartbeat() {
+            if (authHeartbeatTimer) clearTimeout(authHeartbeatTimer);
+            authHeartbeatTimer = null;
+        }
+
+        function scheduleAuthHeartbeat(seconds = 60) {
+            stopAuthHeartbeat();
+            authHeartbeatTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch('/api/auth/heartbeat', { method: 'POST', cache: 'no-store' });
+                    const data = await response.json();
+                    applyAuthState(data);
+                } catch {
+                    elements.sessionBanner.textContent = '授权心跳暂时失败；当前任务不会被卸载，系统会继续恢复。';
+                    elements.sessionBanner.style.display = appUnlocked ? 'block' : 'none';
+                }
+                scheduleAuthHeartbeat(Math.max(15, Number(authHeartbeatInterval || seconds)));
+            }, Math.max(15, seconds) * 1000);
+        }
+
+        let authHeartbeatInterval = 60;
+
+        function applyAuthState(data) {
+            authState = data.state || 'signedOut';
+            authHeartbeatInterval = Number(data.heartbeatIntervalS) || 60;
+            const message = authMessage(data);
+            elements.authNotice.textContent = message;
+            elements.authNotice.className = `notice ${['signedOut','expired','deviceLimit','upgradeRequired','appDisabled','forcedOut'].includes(authState) ? 'error' : authState === 'active' ? 'success' : ''}`.trim();
+            elements.loginForm.classList.toggle('hidden', !['signedOut','forcedOut','expired','deviceLimit','appDisabled'].includes(authState));
+            elements.activateForm.classList.toggle('hidden', authState !== 'signedInUnlicensed');
+            if (authState === 'networkError' && appUnlocked) {
+                elements.sessionBanner.textContent = `${message} 最后一次成功心跳后的 30 分钟内仍可继续当前操作。`;
+                elements.sessionBanner.style.display = 'block';
+            } else if (authState === 'active') {
+                elements.sessionBanner.style.display = 'none';
+            }
+            if (authState === 'active' && !appUnlocked) {
+                appUnlocked = true;
+                elements.authGate.style.display = 'none';
+                document.querySelector('.shell').style.display = '';
+                elements.linkInput.value = localStorage.getItem('rsshub-console-input') || '';
+                checkStatus();
+                refreshCookies();
+                setInterval(() => refreshCookies({ quiet: true }), 5000);
+            }
+            if (['expired','deviceLimit','upgradeRequired','appDisabled','forcedOut'].includes(authState) && appUnlocked) {
+                activeRun?.controller.abort();
+                elements.sessionBanner.textContent = `${message} 已停止派发新任务，当前已完成结果保留。`;
+                elements.sessionBanner.style.display = 'block';
+            }
+            if (authState === 'active' || authState === 'networkError' || authState === 'signedInUnlicensed') scheduleAuthHeartbeat(authHeartbeatInterval);
+        }
+
+        async function loadAuthSession() {
+            const firstRecovery = !appUnlocked;
+            if (firstRecovery) {
+                elements.authGate.style.display = 'block';
+                document.querySelector('.shell').style.display = 'none';
+            } else {
+                elements.sessionBanner.textContent = '正在恢复授权会话；当前任务和输入会保留。';
+                elements.sessionBanner.style.display = 'block';
+            }
+            try {
+                const response = await fetch('/api/auth/session', { cache: 'no-store' });
+                const data = await response.json();
+                applyAuthState(data);
+            } catch {
+                elements.authNotice.textContent = '授权恢复失败，正在等待服务恢复…';
+                elements.authNotice.className = 'notice error';
+                setTimeout(loadAuthSession, 2000);
+            }
+        }
+
+        async function submitAuth(url, body) {
+            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || '授权请求失败');
+            applyAuthState(data);
+        }
+
+        function rowStateLabel(row) {
+            if (row.status === 'waiting' && row.retryQueued) return '等待重试';
+            if (row.status === 'running' && row.attempt > 1) return '重试中';
+            if (row.status === 'success' && row.attempt > 1) return '成功（重试）';
+            if (row.status === 'error' && row.attempt > 1) return '失败（已重试）';
+            return stateLabels[row.status] || row.status;
+        }
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                elements.serviceStatus.classList.toggle('online', data.ok);
+                elements.serviceStatus.lastElementChild.textContent = data.ok ? 'RSSHub 在线' : 'RSSHub 后端异常';
+            } catch {
+                elements.serviceStatus.classList.remove('online');
+                elements.serviceStatus.lastElementChild.textContent = '服务连接失败';
+            }
+        }
+
+        async function requestJson(url, options = {}) {
+            const response = await fetch(url, options);
+            const payload = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) loadAuthSession();
+                const error = new Error(payload.error || payload.code || `HTTP ${response.status}`);
+                error.code = payload.code;
+                throw error;
+            }
+            return payload;
+        }
+
+        function selectedCookiePlatform() {
+            return elements.cookiePlatform.value;
+        }
+
+        function cookiePlatformState(platform) {
+            return cookieSnapshot.platforms.find(item => item.platform === platform) || {
+                platform,
+                perCookieConcurrency: 1,
+                healthyCount: 0,
+                totalCapacity: 0,
+                members: [],
+                schedulingEnabled: true,
+            };
+        }
+
+        function syncCookiePlatformOptions() {
+            if (!cookieSnapshot.platforms.length) return;
+            const selected = selectedCookiePlatform();
+            elements.cookiePlatform.innerHTML = cookieSnapshot.platforms.map(item => {
+                platformLabels[item.platform] = item.label || platformLabels[item.platform] || item.platform;
+                return `<option value="${escapeHtml(item.platform)}">${escapeHtml(platformLabels[item.platform])}</option>`;
+            }).join('');
+            elements.cookiePlatform.value = cookieSnapshot.platforms.some(item => item.platform === selected)
+                ? selected
+                : cookieSnapshot.platforms[0].platform;
+        }
+
+        function cookieDate(value) {
+            if (!value) return '—';
+            const date = new Date(value);
+            return Number.isFinite(date.getTime()) ? date.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '—';
+        }
+
+        function renderCookieTable(items, action) {
+            if (!items.length) return `<div class="cookie-empty">${action === 'restore' ? '暂无已删除成员' : '尚未导入该平台 Cookie'}</div>`;
+            return `<table><thead><tr><th>标签 / 文件</th><th>账号摘要</th><th>状态</th><th>占用</th><th>时间 / 错误</th><th>操作</th></tr></thead><tbody>${items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.label || item.filename)}</strong><div class="cookie-meta">${escapeHtml(item.filename)} · ${item.cookieCount}项${item.legacy ? ' · 旧单文件' : ''}</div></td>
+                    <td>${escapeHtml(item.accountSummary)}</td>
+                    <td><strong class="status-${escapeHtml(item.status)}">${escapeHtml(cookieStatusLabels[item.status] || item.status)}</strong>${item.cooldownUntil ? `<div class="cookie-meta">至 ${escapeHtml(cookieDate(item.cooldownUntil))}</div>` : ''}</td>
+                    <td>${Number(item.occupied) || 0}</td>
+                    <td><div class="cookie-meta">${action === 'restore' ? `删除：${escapeHtml(cookieDate(item.deletedAt))}` : `导入：${escapeHtml(cookieDate(item.importedAt))}`}${item.lastError ? `<br>${escapeHtml(item.lastError)} ${escapeHtml(cookieDate(item.lastErrorAt))}` : ''}</div></td>
+                    <td>${action === 'restore'
+                        ? `<button class="cookie-action" data-cookie-action="restore" data-platform="${escapeHtml(item.platform || selectedCookiePlatform())}" data-member-id="${escapeHtml(item.id)}">恢复</button> <button class="cookie-action delete" data-cookie-action="purge" data-platform="${escapeHtml(item.platform || selectedCookiePlatform())}" data-member-id="${escapeHtml(item.id)}">永久删除</button>`
+                        : `${['invalid', 'disabled', 'cooling'].includes(item.status) ? `<button class="cookie-action" data-cookie-action="revalidate" data-platform="${escapeHtml(item.platform || selectedCookiePlatform())}" data-member-id="${escapeHtml(item.id)}">重新验证</button> ` : ''}<button class="cookie-action delete" data-cookie-action="delete" data-platform="${escapeHtml(item.platform || selectedCookiePlatform())}" data-member-id="${escapeHtml(item.id)}">删除</button>`}</td>
+                </tr>`).join('')}</tbody></table>`;
+        }
+
+        function renderCookieManager() {
+            const platform = selectedCookiePlatform();
+            const summary = cookiePlatformState(platform);
+            const label = summary.label || platformLabels[platform] || platform;
+            elements.cookieConcurrency.value = String(summary.perCookieConcurrency || 1);
+            const allValues = new Set(cookieSnapshot.platforms.map(item => String(item.perCookieConcurrency || 1)));
+            elements.allCookieConcurrency.value = allValues.size === 1 ? [...allValues][0] : 'mixed';
+            elements.cookieCapacity.textContent = `健康${summary.healthyCount}份 × 每份${summary.perCookieConcurrency} = 总容量${summary.totalCapacity}`;
+            elements.capacityInline.textContent = `${label}：健康${summary.healthyCount}份 × 每份${summary.perCookieConcurrency} = 总容量${summary.totalCapacity}`;
+            elements.cookieSchedulingNote.textContent = summary.schedulingEnabled ? '已接入容量调度' : '调度待接入';
+            elements.cookieText.placeholder = `[{"domain":".${summary.domain || 'example.com'}","name":"...","value":"..."}]`;
+            elements.cookieMemberList.innerHTML = renderCookieTable(summary.members || [], 'delete');
+            const trash = cookieSnapshot.trash.filter(item => item.platform === platform);
+            elements.cookieTrashList.innerHTML = renderCookieTable(trash, 'restore');
+        }
+
+        function setCookieMessage(message, type = '') {
+            elements.cookieMessage.textContent = message;
+            elements.cookieMessage.className = `cookie-message ${type}`.trim();
+        }
+
+        async function refreshCookies({ quiet = false } = {}) {
+            try {
+                const payload = await requestJson('/api/cookies');
+                cookieSnapshot = payload;
+                syncCookiePlatformOptions();
+                renderCookieManager();
+                reconcileWorkers();
+            } catch (error) {
+                if (!quiet) setCookieMessage(`读取 Cookie 状态失败：${error.message}`, 'error');
+            }
+        }
+
+        async function importCookie() {
+            const file = elements.cookieFile.files[0];
+            let content = elements.cookieText.value.trim();
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    setCookieMessage('文件超过 5 MiB，未上传。', 'error');
+                    return;
+                }
+                content = await file.text();
+            }
+            if (!content) {
+                setCookieMessage('请粘贴 Cookie JSON，或选择本机 JSON 文件。', 'error');
+                return;
+            }
+            if (new Blob([content]).size > 5 * 1024 * 1024) {
+                setCookieMessage('Cookie JSON 超过 5 MiB，未上传。', 'error');
+                return;
+            }
+
+            elements.importCookieBtn.disabled = true;
+            setCookieMessage('正在校验并导入…');
+            try {
+                await requestJson('/api/cookies/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        platform: selectedCookiePlatform(),
+                        label: elements.cookieLabel.value.trim() || file?.name || '',
+                        content,
+                    }),
+                });
+                elements.cookieText.value = '';
+                elements.cookieFile.value = '';
+                setCookieMessage('导入成功；新 Cookie 将以“待验证”状态加入。', 'success');
+                await refreshCookies({ quiet: true });
+            } catch (error) {
+                setCookieMessage(`导入失败：${error.message}`, 'error');
+            } finally {
+                elements.importCookieBtn.disabled = false;
+            }
+        }
+
+        async function updateCookieConcurrency() {
+            const platform = selectedCookiePlatform();
+            const value = Number(elements.cookieConcurrency.value);
+            elements.cookieConcurrency.disabled = true;
+            try {
+                await requestJson('/api/cookies/concurrency', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platform, perCookieConcurrency: value }),
+                });
+                setCookieMessage(`${platformLabels[platform] || platform}每 Cookie 并发已设为 ${value}。`, 'success');
+                await refreshCookies({ quiet: true });
+            } catch (error) {
+                setCookieMessage(`并发设置失败：${error.message}`, 'error');
+                await refreshCookies({ quiet: true });
+            } finally {
+                elements.cookieConcurrency.disabled = false;
+            }
+        }
+
+        async function applyAllCookieConcurrency() {
+            const value = Number(elements.allCookieConcurrency.value);
+            if (![1, 2, 3].includes(value)) {
+                setCookieMessage('请先选择 1、2 或 3。', 'error');
+                return;
+            }
+            const confirmed = await confirmDialog({
+                title: '覆盖全部平台并发设置？',
+                text: `将把全部 29 个平台注册表的每 Cookie 并发设为 ${value}。此操作会覆盖当前不同的平台设置。`,
+                acceptLabel: '应用到全部平台',
+            });
+            if (!confirmed) return;
+            elements.applyAllConcurrencyBtn.disabled = true;
+            try {
+                const result = await requestJson('/api/cookies/concurrency/all', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ perCookieConcurrency: value }),
+                });
+                if (result.failedPlatforms?.length) {
+                    setCookieMessage(`部分平台未保存：${result.failedPlatforms.join('、')}`, 'error');
+                } else {
+                    setCookieMessage(`已将 ${result.succeededPlatforms?.length || 0} 个平台设为每 Cookie 并发 ${value}。`, 'success');
+                }
+                await refreshCookies({ quiet: true });
+            } catch (error) {
+                setCookieMessage(`全部平台并发设置失败：${error.message}`, 'error');
+                await refreshCookies({ quiet: true });
+            } finally {
+                elements.applyAllConcurrencyBtn.disabled = false;
+            }
+        }
+
+        async function handleCookieAction(event) {
+            const button = event.target.closest('[data-cookie-action]');
+            if (!button) return;
+            const { cookieAction: action, platform, memberId } = button.dataset;
+            if (action === 'purge') {
+                const confirmed = await confirmDialog({ title: '永久删除 Cookie？', text: '此操作不可恢复。仅会永久清除该回收区中的单条 Cookie。', acceptLabel: '永久删除', danger: true });
+                if (!confirmed) return;
+            }
+            button.disabled = true;
+            try {
+                const suffix = action === 'restore' ? '/restore' : action === 'revalidate' ? '/revalidate' : action === 'purge' ? '/purge' : '';
+                await requestJson(`/api/cookies/${encodeURIComponent(platform)}/${encodeURIComponent(memberId)}${suffix}`, {
+                    method: action === 'delete' || action === 'purge' ? 'DELETE' : 'POST',
+                });
+                setCookieMessage(action === 'delete' ? '已移入 30 天回收区；正在使用的成员会在任务结束后移动。' : action === 'purge' ? '已永久删除，无法恢复。' : '已恢复为待验证成员。', 'success');
+                await refreshCookies({ quiet: true });
+            } catch (error) {
+                setCookieMessage(`${action === 'delete' ? '删除' : action === 'restore' ? '恢复' : action === 'purge' ? '永久删除' : '重新验证'}失败：${error.message}`, 'error');
+                button.disabled = false;
+            }
+        }
+
+        function parseInputs() {
+            let links = elements.linkInput.value.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+            if (elements.dedupe.checked) links = [...new Set(links)];
+            return links;
+        }
+
+        function render() {
+            const completed = rows.filter(row => ['success','no_date','no_target','error'].includes(row.status)).length;
+            const successes = rows.filter(row => row.status === 'success').length;
+            const noTargets = rows.filter(row => row.status === 'no_target').length;
+            const errors = rows.filter(row => row.status === 'error').length;
+            elements.totalCount.textContent = rows.length;
+            elements.doneCount.textContent = completed;
+            elements.successCount.textContent = successes;
+            elements.noTargetCount.textContent = noTargets;
+            elements.errorCount.textContent = errors;
+            elements.progressBar.style.width = rows.length ? `${completed / rows.length * 100}%` : '0%';
+
+            if (!rows.length) {
+                elements.resultArea.className = 'empty';
+                elements.resultArea.innerHTML = '<div><div class="empty-mark">时</div><strong>等待输入主页链接</strong><p>结果会在处理过程中逐条显示。</p></div>';
+                elements.outputText.value = '';
+                return;
+            }
+
+            elements.resultArea.className = 'table-wrap';
+            elements.resultArea.innerHTML = `<table><thead><tr><th>#</th><th>平台</th><th>主页链接</th><th>主页作品最新时间（北京时间）</th><th>状态</th></tr></thead><tbody>${rows.map((row, index) => {
+                const data = row.data || {};
+                const displayUrl = data.resolvedUrl || row.input;
+                const timeCell = row.status === 'success'
+                    ? `<span class="time">${escapeHtml(data.latestTimeBeijing)}</span><a class="work-title" href="${escapeHtml(data.latestUrl)}" target="_blank" rel="noreferrer">${escapeHtml(data.latestTitle || '打开最新作品')}</a>`
+                    : '<span class="time">—</span>';
+                const detail = row.error || data.error;
+                return `<tr><td class="row-index">${index + 1}</td><td><span class="platform">${escapeHtml(data.platform || platformLabels[row.platformKey] || '识别中')}</span></td><td class="link-cell"><a href="${escapeHtml(displayUrl)}" target="_blank" rel="noreferrer" title="原始输入：${escapeHtml(row.input)}">${escapeHtml(displayUrl)}</a></td><td>${timeCell}</td><td><span class="state ${row.status}">${escapeHtml(rowStateLabel(row))}</span>${detail ? `<div class="error-text">${escapeHtml(detail)}</div>` : ''}</td></tr>`;
+            }).join('')}</tbody></table>`;
+
+            elements.outputText.value = rows.map(row => {
+                const data = row.data || {};
+                const result = row.status === 'success' ? data.latestTimeBeijing : `【${rowStateLabel(row)}】${row.error || data.error || ''}`;
+                return `${data.resolvedUrl || row.input}\t${result}\t${data.latestUrl || ''}`;
+            }).join('\n');
+        }
+
+        function platformForInput(value) {
+            const text = String(value || '').trim();
+            const routeMatch = text.match(/^\/([a-z0-9_-]+)\//i);
+            if (routeMatch && cookieSnapshot.platforms.some(item => item.platform === routeMatch[1])) return routeMatch[1];
+            try {
+                const host = new URL(text).hostname.toLowerCase().replace(/^www\./, '');
+                let best = null;
+                for (const summary of cookieSnapshot.platforms) {
+                    for (const candidate of summary.hosts || []) {
+                        if (host !== candidate && !host.endsWith(`.${candidate}`)) continue;
+                        if (!best || candidate.length > best.host.length) best = { platform: summary.platform, host: candidate };
+                    }
+                }
+                return best?.platform || '';
+            } catch {
+                return '';
+            }
+            return '';
+        }
+
+        function desiredPlatformConcurrency(platform) {
+            if (!platform) return 1;
+            return Math.max(1, Number(cookiePlatformState(platform).totalCapacity) || 0);
+        }
+
+        function finishRunIfDone(runState) {
+            const unfinished = rows.some(row => row.status === 'waiting' || row.status === 'running');
+            if ((!unfinished || runState.controller.signal.aborted) && runState.workerCount === 0 && !runState.finished) {
+                runState.finished = true;
+                runState.resolve();
+            }
+        }
+
+        function nextSchedulableRow(runState) {
+            return rows.findIndex(row => {
+                if (row.status !== 'waiting') return false;
+                const lane = row.platformKey || 'other';
+                return (runState.activeByPlatform[lane] || 0) < desiredPlatformConcurrency(row.platformKey);
+            });
+        }
+
+        function queueCompletedPlatformRetries(runState) {
+            const lanes = new Set(rows.map(row => row.platformKey || 'other'));
+            for (const lane of lanes) {
+                if (runState.retryRounds.has(lane) || (runState.activeByPlatform[lane] || 0) > 0) continue;
+                const laneRows = rows.filter(row => (row.platformKey || 'other') === lane);
+                const firstRoundFinished = laneRows.every(row => row.attempt >= 1 && row.status !== 'running');
+                if (!firstRoundFinished) continue;
+                runState.retryRounds.add(lane);
+                for (const row of laneRows) {
+                    if (row.status !== 'error' || row.attempt !== 1 || row.error === '已停止') continue;
+                    row.retryQueued = true;
+                    row.previousError = row.error;
+                    row.status = 'waiting';
+                }
+            }
+        }
+
+        function reconcileWorkers() {
+            const runState = activeRun;
+            if (!runState || runState.finished || runState.controller.signal.aborted) return;
+            queueCompletedPlatformRetries(runState);
+            while (runState.workerCount < globalWorkerLimit) {
+                const index = nextSchedulableRow(runState);
+                if (index < 0) break;
+                const row = rows[index];
+                const lane = row.platformKey || 'other';
+                row.attempt += 1;
+                if (row.attempt > 1) row.error = '';
+                row.status = 'running';
+                runState.workerCount += 1;
+                runState.activeByPlatform[lane] = (runState.activeByPlatform[lane] || 0) + 1;
+                void runOneRow(runState, index, lane);
+            }
+            render();
+            finishRunIfDone(runState);
+        }
+
+        async function runOneRow(runState, index, lane) {
+            const row = rows[index];
+            try {
+                const response = await fetch(`/api/query?url=${encodeURIComponent(row.input)}`, { signal: runState.controller.signal });
+                const data = await response.json();
+                row.data = data;
+                row.status = data.status === 'no_target' ? 'no_target' : data.ok ? (data.status || 'success') : 'error';
+                row.error = row.status === 'success' ? '' : data.error;
+                if (row.platformKey) await refreshCookies({ quiet: true });
+            } catch (error) {
+                row.status = 'error';
+                row.error = error.name === 'AbortError' ? '已停止' : '界面无法连接本地服务';
+            } finally {
+                render();
+                runState.workerCount -= 1;
+                runState.activeByPlatform[lane] = Math.max(0, (runState.activeByPlatform[lane] || 1) - 1);
+                if (!runState.controller.signal.aborted) reconcileWorkers();
+                finishRunIfDone(runState);
+            }
+        }
+
+        async function run() {
+            if (!['active','networkError'].includes(authState)) {
+                elements.authNotice.textContent = '请先完成有效授权。';
+                elements.authGate.style.display = 'block';
+                return;
+            }
+            const inputs = parseInputs();
+            if (!inputs.length) {
+                elements.linkInput.focus();
+                return;
+            }
+            rows = inputs.map(input => ({ input, platformKey: platformForInput(input), status: 'waiting', data: null, error: '', attempt: 0, retryQueued: false, previousError: '' }));
+            const controller = new AbortController();
+            let resolveRun;
+            const completion = new Promise(resolve => { resolveRun = resolve; });
+            const runState = { controller, workerCount: 0, activeByPlatform: {}, retryRounds: new Set(), resolve: resolveRun, finished: false };
+            activeRun = runState;
+            elements.startBtn.disabled = true;
+            elements.stopBtn.disabled = false;
+            render();
+
+            reconcileWorkers();
+            await completion;
+            if (activeRun === runState) {
+                activeRun = null;
+                elements.startBtn.disabled = false;
+                elements.stopBtn.disabled = true;
+                localStorage.setItem('rsshub-console-input', elements.linkInput.value);
+            }
+        }
+
+        function stop() {
+            activeRun?.controller.abort();
+            for (const row of rows) {
+                if (['waiting','running'].includes(row.status)) {
+                    row.status = 'error';
+                    row.error = '已停止';
+                }
+            }
+            elements.startBtn.disabled = false;
+            elements.stopBtn.disabled = true;
+            render();
+        }
+
+        function clearAll() {
+            activeRun?.controller.abort();
+            activeRun = null;
+            elements.linkInput.value = '';
+            rows = [];
+            elements.startBtn.disabled = false;
+            elements.stopBtn.disabled = true;
+            render();
+            localStorage.removeItem('rsshub-console-input');
+        }
+
+        async function copyOutput() {
+            if (!elements.outputText.value) return;
+            await navigator.clipboard.writeText(elements.outputText.value);
+            const old = elements.copyBtn.textContent;
+            elements.copyBtn.textContent = '已复制';
+            setTimeout(() => elements.copyBtn.textContent = old, 1200);
+        }
+
+        function exportCsv() {
+            if (!rows.length) return;
+            const quote = value => `"${String(value ?? '').replaceAll('"','""')}"`;
+            const lines = [['原始输入','解析后主页链接','平台','主页作品最新时间（北京时间）','最新作品链接','状态','说明'], ...rows.map(row => [row.input,row.data?.resolvedUrl || row.input,row.data?.platform || platformLabels[row.platformKey] || '',row.data?.latestTimeBeijing || '',row.data?.latestUrl || '',rowStateLabel(row),row.error || row.data?.error || ''])];
+            const blob = new Blob(['\ufeff' + lines.map(line => line.map(quote).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const anchor = document.createElement('a');
+            anchor.href = URL.createObjectURL(blob);
+            anchor.download = `主页发布时间_${new Date().toISOString().slice(0,10)}.csv`;
+            anchor.click();
+            URL.revokeObjectURL(anchor.href);
+        }
+
+        elements.loginForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            try {
+                await submitAuth('/api/auth/login', { username: elements.authUsername.value, password: elements.authPassword.value });
+            } catch (error) { elements.authNotice.textContent = error.message; elements.authNotice.className = 'notice error'; }
+        });
+        elements.activateForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            try {
+                await submitAuth('/api/auth/activate', { code: elements.authCode.value });
+            } catch (error) { elements.authNotice.textContent = error.message; elements.authNotice.className = 'notice error'; }
+        });
+        elements.startBtn.addEventListener('click', run);
+        elements.stopBtn.addEventListener('click', stop);
+        elements.clearBtn.addEventListener('click', clearAll);
+        elements.copyBtn.addEventListener('click', copyOutput);
+        elements.csvBtn.addEventListener('click', exportCsv);
+        elements.cookiePlatform.addEventListener('change', renderCookieManager);
+        elements.cookieConcurrency.addEventListener('change', updateCookieConcurrency);
+        elements.applyAllConcurrencyBtn.addEventListener('click', applyAllCookieConcurrency);
+        elements.importCookieBtn.addEventListener('click', importCookie);
+        elements.refreshCookiesBtn.addEventListener('click', () => refreshCookies());
+        elements.cookieMemberList.addEventListener('click', handleCookieAction);
+        elements.cookieTrashList.addEventListener('click', handleCookieAction);
+        elements.themeToggle.addEventListener('click', () => {
+            applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true);
+        });
+        elements.sidebarToggle.addEventListener('click', () => {
+            applySidebarState(document.documentElement.dataset.sidebar !== 'collapsed', true);
+        });
+        window.addEventListener('hashchange', applyRoute);
+        applyTheme(document.documentElement.dataset.theme);
+        applySidebarState(localStorage.getItem(sidebarStorageKey) === '1');
+        applyRoute();
+        loadAuthSession();
+    </script>
+    <script src="/vendor/jszip-3.10.1.min.js"></script>
+    <script type="module" src="/workbook-ui.mjs"></script>
+</body>
+</html>

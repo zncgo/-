@@ -1,0 +1,120 @@
+services:
+    rsshub:
+        # two ways to enable Playwright:
+        # * comment out marked lines, then use this image instead: diygod/rsshub:chromium-bundled
+        # * (consumes more disk space and memory) leave everything unchanged
+        build:
+            context: ./ui
+            dockerfile: Dockerfile.rsshub
+        restart: always
+        expose:
+            - '1200'
+        environment:
+            NODE_ENV: production
+            CACHE_TYPE: redis
+            REDIS_URL: 'redis://redis:6379/'
+            PLAYWRIGHT_CDP_ENDPOINT: 'ws://browserless:3000' # marked
+        command: ['node', '/cookie-bootstrap.mjs']
+        volumes:
+            - type: bind
+              # 默认复用用户已导入的 Cookie 池；打包版可用 RSSHUB_USER_DATA_DIR 覆盖为应用数据目录。
+              source: "${RSSHUB_USER_DATA_DIR:-E:/更新频率表}/cookies"
+              target: /cookies
+              read_only: true
+        healthcheck:
+            test: ['CMD', 'curl', '-f', 'http://localhost:1200/healthz']
+            interval: 30s
+            timeout: 10s
+            retries: 3
+        depends_on:
+            - redis
+            - browserless # marked
+
+    ui:
+        build:
+            context: ./ui
+        restart: always
+        expose:
+            - '3000'
+        environment:
+            RSSHUB_BASE_URL: 'http://rsshub:1200'
+            BROWSERLESS_HTTP_URL: 'http://browserless:3000'
+            DOUYIN_COOKIE_FILE: '/cookies/douyin.json'
+            XIAOHONGSHU_COOKIE_FILE: '/cookies/xiaohongshu.json'
+            KUAISHOU_COOKIE_FILE: '/cookies/kuaishou.json'
+            TOUTIAO_COOKIE_FILE: '/cookies/toutiao.json'
+            BILIBILI_COOKIE_FILE: '/cookies/bilibili.json'
+            COOKIE_ROOT_DIR: '/cookies'
+            # 留空时继续使用内置 Browserless；配置后懂车帝、知乎改走宿主机可见浏览器运行器。
+            VISIBLE_BROWSER_RUNNER_URL: '${VISIBLE_BROWSER_RUNNER_URL:-}'
+            REQUEST_TIMEOUT_MS: '90000'
+        volumes:
+            - type: bind
+              source: "${RSSHUB_USER_DATA_DIR:-E:/更新频率表}/cookies"
+              target: /cookies
+        healthcheck:
+            test: ['CMD', 'node', '-e', "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 5s
+        depends_on:
+            rsshub:
+                condition: service_healthy
+
+    auth-gateway:
+        build:
+            context: ./auth
+        restart: always
+        ports:
+            - '127.0.0.1:1200:8080'
+        environment:
+            UI_UPSTREAM: 'http://ui:3000'
+            AUTH_STORAGE_DIR: '/var/lib/rsshub-auth'
+            AUTH_MASTER_KEY_FILE: '/run/secrets/auth-master-key'
+        volumes:
+            - 'rsshub-auth-data:/var/lib/rsshub-auth'
+            - 'auth-secrets:/run/secrets:ro'
+        healthcheck:
+            test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz', timeout=3)"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 5s
+        depends_on:
+            ui:
+                condition: service_healthy
+
+    browserless: # marked
+        image: browserless/chrome # marked
+        restart: always # marked
+        ulimits: # marked
+            core: # marked
+                hard: 0 # marked
+                soft: 0 # marked
+        healthcheck: # marked
+            test: ['CMD', 'curl', '-f', 'http://localhost:3000/pressure'] # marked
+            interval: 30s # marked
+            timeout: 10s # marked
+            retries: 3 # marked
+
+    redis:
+        image: redis:alpine
+        restart: always
+        volumes:
+            - redis-data:/data
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 30s
+            timeout: 10s
+            retries: 5
+            start_period: 5s
+
+volumes:
+    # Kept for one-time migration and rollback; it is no longer mounted by services.
+    cookie-data:
+        name: rsshub-cookie-data
+    auth-secrets:
+        name: rsshub-auth-secrets
+    redis-data:
+    rsshub-auth-data:

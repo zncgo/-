@@ -1,0 +1,81 @@
+import InvalidParameterError from '@/errors/types/invalid-parameter';
+import type { Route } from '@/types';
+import got from '@/utils/got';
+import { parseDate } from '@/utils/parse-date';
+import { isValidHost } from '@/utils/valid-host';
+
+import { renderDescription } from './templates/description';
+
+export const route: Route = {
+    path: ['/global/:lang/:type?', '/ff14_global/:lang/:type?'],
+    categories: ['game'],
+    example: '/ff14/global/na/all',
+    parameters: { lang: 'Region', type: 'Category, `all` by default' },
+    features: {
+        requireConfig: false,
+        requirePuppeteer: false,
+        antiCrawler: false,
+        supportBT: false,
+        supportPodcast: false,
+        supportScihub: false,
+    },
+    name: 'FINAL FANTASY XIV (The Lodestone)',
+    maintainers: ['kmod-midori'],
+    handler,
+    description: `Region
+
+| North Ameria | Europe | France | Germany | Japan |
+| ------------ | ------ | ------ | ------- | ----- |
+| na           | eu     | fr     | de      | jp    |
+
+Category
+
+| all | topics | notices | maintenance | updates | status | developers |
+| --- | ------ | ------- | ----------- | ------- | ------ | ---------- |`,
+};
+
+interface LodestoneNewsItem {
+    id: string;
+    url: string;
+    title: string;
+    time: string;
+    description?: string;
+    image?: string;
+}
+
+async function handler(ctx) {
+    const lang = ctx.req.param('lang');
+    const type = ctx.req.param('type') ?? 'all';
+
+    if (!isValidHost(lang)) {
+        throw new InvalidParameterError('Invalid lang');
+    }
+
+    const response = await got({
+        method: 'get',
+        url: `https://lodestonenews.com/news/${type}?locale=${lang}`,
+    });
+
+    let data: LodestoneNewsItem[];
+    if (type === 'all') {
+        const groups: Record<string, LodestoneNewsItem[]> = response.data;
+        data = Object.values(groups).flat();
+    } else {
+        data = response.data;
+    }
+
+    return {
+        title: `FFXIV Lodestone updates (${type})`,
+        link: `https://${lang}.finalfantasyxiv.com/lodestone/news/`,
+        item: data.map(({ id, url, title, time, description, image }) => ({
+            title,
+            link: url,
+            description: renderDescription({
+                image,
+                description,
+            }),
+            pubDate: parseDate(time),
+            guid: id,
+        })),
+    };
+}
