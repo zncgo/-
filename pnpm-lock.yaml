@@ -54,7 +54,7 @@ importers:
         version: 2.1.1(hono@4.13.5)
       '@hono/zod-openapi':
         specifier: 1.6.1
-        version: 1.6.1(hono@4.13.5)(zod@4.4.3)
+        version: 1.6.1(hono@4.13.5)(zod@4.6.2)
       '@jocmp/mercury-parser':
         specifier: 3.1.0
         version: 3.1.0
@@ -284,8 +284,8 @@ importers:
         specifier: 18.0.0
         version: 18.0.0
       zod:
-        specifier: 4.4.3
-        version: 4.4.3
+        specifier: 4.6.2
+        version: 4.6.2
     devDependencies:
       '@actions/core':
         specifier: 3.0.1
@@ -3765,7 +3765,7 @@ packages:
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
   difflib@https://codeload.github.com/postlight/difflib.js/tar.gz/32e8e38c7fcd935241b9baab71bb432fd9b166ed:
-    resolution: {gitHosted: true, integrity: sha512-OG2C++3YYIzflFjA9irnexBs9eUS6KUOViAssV4oSo4W8HAl86TV+DoFYhdSXVaFd4z5htsM3zzs64WJybH4cQ==, tarball: https://codeload.github.com/postlight/difflib.js/tar.gz/32e8e38c7fcd935241b9baab71bb432fd9b166ed}
+    resolution: {tarball: https://codeload.github.com/postlight/difflib.js/tar.gz/32e8e38c7fcd935241b9baab71bb432fd9b166ed}
     version: 0.2.6
 
   discord-api-types@0.38.53:
@@ -5088,6 +5088,11 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  nanoid@3.3.19:
+    resolution: {integrity: sha512-Y2tUNy4ouw6tq5oDSKeQYGOyhkUBhNOcGV/02KC+6kd9eDGqdZd++mjMiIDilrBYvjEnCYvVtsuHCuP+okSfug==}
+    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
+    hasBin: true
+
   nanoid@5.1.16:
     resolution: {integrity: sha512-kVrnsrJqMR8+oLJnGEmSWw9BivK5mt7H3FZatVRjrc5wGqFYuBxX1yG7+A7Gi5AefkX6t/oCkizcQgpu0cY1dQ==}
     engines: {node: ^18 || >=20}
@@ -5406,6 +5411,10 @@ packages:
 
   postcss@8.5.26:
     resolution: {integrity: sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ==}
+    engines: {node: ^10 || ^12 || >=14}
+
+  postcss@8.5.28:
+    resolution: {integrity: sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A==}
     engines: {node: ^10 || ^12 || >=14}
 
   postman-request@2.88.1-postman.49:
@@ -6539,6 +6548,9 @@ packages:
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
+  zod@4.6.2:
+    resolution: {integrity: sha512-lh5RCAGFa1Cm2hjtNwLQhSs/AsqdWnTQaBER9fEwN/88pSh7KOtJavtBx/0VlkN/uFd61SwYmljLMDAsHlvzBQ==}
+
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
@@ -6614,10 +6626,10 @@ snapshots:
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.5.2
 
-  '@asteasolutions/zod-to-openapi@9.1.0(zod@4.4.3)':
+  '@asteasolutions/zod-to-openapi@9.1.0(zod@4.6.2)':
     dependencies:
       openapi3-ts: 4.6.1
-      zod: 4.4.3
+      zod: 4.6.2
 
   '@babel/code-frame@7.29.7':
     dependencies:
@@ -7122,18 +7134,18 @@ snapshots:
     dependencies:
       hono: 4.13.5
 
-  '@hono/zod-openapi@1.6.1(hono@4.13.5)(zod@4.4.3)':
+  '@hono/zod-openapi@1.6.1(hono@4.13.5)(zod@4.6.2)':
     dependencies:
-      '@asteasolutions/zod-to-openapi': 9.1.0(zod@4.4.3)
-      '@hono/zod-validator': 0.9.0(hono@4.13.5)(zod@4.4.3)
+      '@asteasolutions/zod-to-openapi': 9.1.0(zod@4.6.2)
+      '@hono/zod-validator': 0.9.0(hono@4.13.5)(zod@4.6.2)
       hono: 4.13.5
       openapi3-ts: 4.6.1
-      zod: 4.4.3
+      zod: 4.6.2
 
-  '@hono/zod-validator@0.9.0(hono@4.13.5)(zod@4.4.3)':
+  '@hono/zod-validator@0.9.0(hono@4.13.5)(zod@4.6.2)':
     dependencies:
       hono: 4.13.5
-      zod: 4.4.3
+      zod: 4.6.2
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -8110,7 +8122,7 @@ snapshots:
       '@scalar/helpers': 0.11.1
       nanoid: 5.1.16
       type-fest: 5.8.0
-      zod: 4.4.3
+      zod: 4.6.2
 
   '@scalar/validation@0.6.3': {}
 
@@ -10768,6 +10780,8 @@ snapshots:
 
   nanoid@3.3.18: {}
 
+  nanoid@3.3.19: {}
+
   nanoid@5.1.16: {}
 
   narou@2.0.1: {}
@@ -11145,6 +11159,12 @@ snapshots:
   postcss@8.5.26:
     dependencies:
       nanoid: 3.3.18
+      picocolors: 1.1.1
+      source-map-js: 1.2.1
+
+  postcss@8.5.28:
+    dependencies:
+      nanoid: 3.3.19
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
@@ -12030,7 +12050,7 @@ snapshots:
       esbuild: 0.27.7
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
-      postcss: 8.5.26
+      postcss: 8.5.28
       rollup: 4.63.1
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -12350,5 +12370,7 @@ snapshots:
       '@yuku-parser/binding-win32-x64': 0.7.4
 
   zod@4.4.3: {}
+
+  zod@4.6.2: {}
 
   zwitch@2.0.4: {}
